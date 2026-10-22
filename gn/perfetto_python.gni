@@ -15,59 +15,82 @@
 import("perfetto.gni")
 
 template("perfetto_py_library") {
-  action(target_name) {
-    forward_variables_from(invoker, [ "deps" ])
+  if (is_perfetto_build_generator) {
+    action(target_name) {
+      forward_variables_from(invoker, [ "deps" ])
 
-    data = []
-    if (defined(invoker.data)) {
-      data += invoker.data
+      data = []
+      if (defined(invoker.data)) {
+        data += invoker.data
+      }
+
+      out_path = "$target_gen_dir/" + target_name
+      rebased_out_path =
+          rebase_path(target_gen_dir, root_build_dir) + "/" + target_name
+
+      sources = []
+      if (defined(invoker.sources)) {
+        sources += invoker.sources
+      }
+      script = "$perfetto_root_path/tools/touch_file.py"
+      args = [
+        "--output",
+        rebased_out_path,
+      ]
+      outputs = [ out_path ]
+      metadata = {
+        perfetto_action_type_for_generator = [ "python_library" ]
+        perfetto_data = data
+      }
     }
-
-    out_path = "$target_gen_dir/" + target_name
-    rebased_out_path =
-        rebase_path(target_gen_dir, root_build_dir) + "/" + target_name
-
-    sources = []
-    if (defined(invoker.sources)) {
-      sources += invoker.sources
-    }
-    script = "$perfetto_root_path/tools/touch_file.py"
-    args = [
-      "--output",
-      rebased_out_path,
-    ]
-    outputs = [ out_path ]
-    metadata = {
-      perfetto_action_type_for_generator = [ "python_library" ]
-      perfetto_data = data
+  } else {
+    group(target_name) {
+      forward_variables_from(invoker, [ "deps" ])
+      not_needed(invoker,
+                 [
+                   "sources",
+                   "data",
+                 ])
     }
   }
 }
 
 template("perfetto_py_binary") {
-  action(target_name) {
-    forward_variables_from(invoker, [ "deps" ])
+  if (is_perfetto_build_generator) {
+    action(target_name) {
+      forward_variables_from(invoker, [ "deps" ])
 
-    data = []
-    if (defined(invoker.data)) {
-      data += invoker.data
+      data = []
+      if (defined(invoker.data)) {
+        data += invoker.data
+      }
+
+      out_path = "$target_gen_dir/" + target_name
+      rebased_out_path =
+          rebase_path(target_gen_dir, root_build_dir) + "/" + target_name
+
+      sources = invoker.sources
+      script = "$perfetto_root_path/tools/touch_file.py"
+      args = [
+        "--output",
+        rebased_out_path,
+      ]
+      outputs = [ out_path ]
+      metadata = {
+        perfetto_action_type_for_generator = [ "python_binary" ]
+        perfetto_python_main = [ invoker.main ]
+        perfetto_data = data
+      }
     }
-
-    out_path = "$target_gen_dir/" + target_name
-    rebased_out_path =
-        rebase_path(target_gen_dir, root_build_dir) + "/" + target_name
-
-    sources = invoker.sources
-    script = "$perfetto_root_path/tools/touch_file.py"
-    args = [
-      "--output",
-      rebased_out_path,
-    ]
-    outputs = [ out_path ]
-    metadata = {
-      perfetto_action_type_for_generator = [ "python_binary" ]
-      perfetto_python_main = [ invoker.main ]
-      perfetto_data = data
+  } else {
+    group(target_name) {
+      forward_variables_from(invoker, [ "deps" ])
+      not_needed(invoker,
+                 [
+                   "sources",
+                   "data",
+                   "main",
+                 ])
     }
   }
 }

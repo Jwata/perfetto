@@ -29,6 +29,7 @@ template("perfetto_tp_tables") {
   action(action_name) {
     sources = invoker.sources
     script = "${perfetto_root_path}/tools/gen_tp_table_headers.py"
+    depfile = "$target_gen_dir/${target_name}.d"
 
     outputs = [ "$target_gen_dir/all_tables_fwd.h" ]
     foreach(table, invoker.sources) {
@@ -42,9 +43,15 @@ template("perfetto_tp_tables") {
     }
     public_configs = [ ":$config_name" ]
 
+    # The depfile lists the generator modules and cross-target *_tables.py
+    # files imported by the script. tools/gen_bazel and tools/gen_android_bp
+    # do not forward these args: their Bazel/Soong rules list those Python
+    # sources explicitly instead.
     gen_args = [
       "--gen-dir",
       rebase_path("$root_gen_dir/$perfetto_root_path", root_build_dir),
+      "--depfile",
+      rebase_path(depfile, root_build_dir),
     ]
     input_args = [ "--inputs" ] + rebase_path(invoker.sources, root_build_dir)
     args = gen_args + input_args + relative_args

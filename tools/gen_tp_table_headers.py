@@ -52,6 +52,7 @@ def main():
   parser.add_argument('--gen-dir', required=True)
   parser.add_argument('--relative-input-dir')
   parser.add_argument('--import-prefix', default='')
+  parser.add_argument('--depfile')
   args = parser.parse_args()
 
   def get_relin_path(in_path: str):
@@ -146,11 +147,36 @@ def main():
     # with how other headers compute their output paths.
     first_fwd_relout = all_fwd_relout_paths[0]
     out_dir = os.path.dirname(first_fwd_relout)
-    generate_all_tables_header(args, all_tables, all_fwd_header_paths, out_dir)
+    all_tables_out = generate_all_tables_header(args, all_tables,
+                                                all_fwd_header_paths, out_dir)
+    if args.depfile:
+      target_out = all_tables_out.replace('\\', '/')
+      dep_files = find_loaded_python_deps()
+      with open(args.depfile, 'w', encoding='utf8') as df:
+        df.write(f'{target_out}: {" ".join(dep_files)}\n')
+
+
+def find_loaded_python_deps() -> List[str]:
+  """Returns build-dir-relative paths of all loaded Python modules under ROOT_DIR.
+
+  This captures the generator library modules (python/generators/...) as well
+  as all input and cross-target *_tables.py modules imported by
+  parse_tables_from_modules(). Paths are relative to cwd (root_build_dir) so
+  the depfile is relocatable for remote execution.
+  """
+  deps = set()
+  for module in sys.modules.values():
+    file_path = getattr(module, '__file__', None)
+    if not file_path:
+      continue
+    if os.path.abspath(file_path).startswith(ROOT_DIR + os.sep):
+      deps.add(os.path.relpath(file_path).replace('\\', '/'))
+  return sorted(deps)
 
 
 def generate_all_tables_header(args, all_tables: List[ParsedTable],
-                               fwd_header_paths: List[str], out_dir: str):
+                               fwd_header_paths: List[str],
+                               out_dir: str) -> str:
   """Generates an all_tables_fwd.h header with variant and count only."""
   rel_path = os.path.join(out_dir, 'all_tables_fwd.h')
   out_path = os.path.join(args.gen_dir, rel_path)
@@ -190,6 +216,7 @@ inline constexpr size_t kTableCount = std::variant_size_v<AllTables>;
 
   with open(out_path, 'w', encoding='utf8') as out:
     out.write(content)
+  return out_path
 
 
 if __name__ == '__main__':

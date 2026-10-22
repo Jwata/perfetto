@@ -81,6 +81,7 @@ def pack_bundle(file_to_sql):
 def main():
   parser = argparse.ArgumentParser()
   parser.add_argument('--output', required=True)
+  parser.add_argument('--depfile')
   parser.add_argument('--namespace', required=True)
   parser.add_argument('--gen-dir', default='')
   parser.add_argument('--root-dir', default=None)
@@ -112,6 +113,9 @@ def main():
       namespace=args.namespace,
       include_guard=cpp_blob_emitter.derive_include_guard(
           args.output, args.gen_dir))
+  if args.depfile:
+    with open(args.depfile, 'w', encoding='utf-8') as f:
+      f.write(f'{args.output}: {" ".join(sql_files)}\n')
   return 0
 
 

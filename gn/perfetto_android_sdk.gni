@@ -51,33 +51,45 @@ template("perfetto_android_library") {
     "visibility",
   ]
 
-  action(target_name) {
-    forward_variables_from(invoker, _vars_to_forward)
-    out_file_name = target_name + "_stub.txt"
-    out_path = "$target_gen_dir/" + out_file_name
-    rebased_out_path =
-        rebase_path(target_gen_dir, root_build_dir) + "/" + out_file_name
-    script = "$perfetto_root_path/tools/touch_file.py"
-    args = [
-      "--output",
-      rebased_out_path,
-    ]
-    outputs = [ out_path ]
-    metadata = {
-      perfetto_action_type_for_generator = [ "perfetto_android_library" ]
-      if (defined(manifest)) {
-        perfetto_android_manifest = [ get_path_info(manifest, "abspath") ]
+  if (is_perfetto_build_generator) {
+    action(target_name) {
+      forward_variables_from(invoker, _vars_to_forward)
+      out_file_name = target_name + "_stub.txt"
+      out_path = "$target_gen_dir/" + out_file_name
+      rebased_out_path =
+          rebase_path(target_gen_dir, root_build_dir) + "/" + out_file_name
+      script = "$perfetto_root_path/tools/touch_file.py"
+      args = [
+        "--output",
+        rebased_out_path,
+      ]
+      outputs = [ out_path ]
+      metadata = {
+        perfetto_action_type_for_generator = [ "perfetto_android_library" ]
+        if (defined(manifest)) {
+          perfetto_android_manifest = [ get_path_info(manifest, "abspath") ]
+        }
+        if (defined(android_bp_java_target_name_suffix)) {
+          perfetto_android_library_android_bp_java_target_name_suffix =
+              [ android_bp_java_target_name_suffix ]
+        }
+        if (defined(android_bp_copy_java_target_name_suffix)) {
+          perfetto_android_library_android_bp_copy_java_target_name_suffix =
+              [ android_bp_copy_java_target_name_suffix ]
+          perfetto_android_library_android_bp_copy_java_target_jarjar =
+              [ get_path_info(android_bp_copy_java_target_jarjar, "abspath") ]
+        }
       }
-      if (defined(android_bp_java_target_name_suffix)) {
-        perfetto_android_library_android_bp_java_target_name_suffix =
-            [ android_bp_java_target_name_suffix ]
-      }
-      if (defined(android_bp_copy_java_target_name_suffix)) {
-        perfetto_android_library_android_bp_copy_java_target_name_suffix =
-            [ android_bp_copy_java_target_name_suffix ]
-        perfetto_android_library_android_bp_copy_java_target_jarjar =
-            [ get_path_info(android_bp_copy_java_target_jarjar, "abspath") ]
-      }
+    }
+  } else {
+    group(target_name) {
+      forward_variables_from(invoker,
+                             [
+                               "deps",
+                               "testonly",
+                               "visibility",
+                             ])
+      not_needed(invoker, _vars_to_forward)
     }
   }
 }
@@ -92,25 +104,37 @@ template("perfetto_android_app") {
     "visibility",
   ]
 
-  action(target_name) {
-    forward_variables_from(invoker, _vars_to_forward)
-    out_file_name = target_name + "_stub.txt"
-    out_path = "$target_gen_dir/" + out_file_name
-    rebased_out_path =
-        rebase_path(target_gen_dir, root_build_dir) + "/" + out_file_name
-    script = "$perfetto_root_path/tools/touch_file.py"
-    args = [
-      "--output",
-      rebased_out_path,
-    ]
-    outputs = [ out_path ]
-    metadata = {
-      perfetto_action_type_for_generator = [ "perfetto_android_app" ]
-      perfetto_android_manifest = [ get_path_info(manifest, "abspath") ]
-      if (defined(resource_files_glob)) {
-        perfetto_android_resource_files_glob =
-            [ get_path_info(resource_files_glob, "abspath") ]
+  if (is_perfetto_build_generator) {
+    action(target_name) {
+      forward_variables_from(invoker, _vars_to_forward)
+      out_file_name = target_name + "_stub.txt"
+      out_path = "$target_gen_dir/" + out_file_name
+      rebased_out_path =
+          rebase_path(target_gen_dir, root_build_dir) + "/" + out_file_name
+      script = "$perfetto_root_path/tools/touch_file.py"
+      args = [
+        "--output",
+        rebased_out_path,
+      ]
+      outputs = [ out_path ]
+      metadata = {
+        perfetto_action_type_for_generator = [ "perfetto_android_app" ]
+        perfetto_android_manifest = [ get_path_info(manifest, "abspath") ]
+        if (defined(resource_files_glob)) {
+          perfetto_android_resource_files_glob =
+              [ get_path_info(resource_files_glob, "abspath") ]
+        }
       }
+    }
+  } else {
+    group(target_name) {
+      forward_variables_from(invoker,
+                             [
+                               "deps",
+                               "testonly",
+                               "visibility",
+                             ])
+      not_needed(invoker, _vars_to_forward)
     }
   }
 }
@@ -125,40 +149,56 @@ template("perfetto_android_instrumentation_test") {
     "visibility",
   ]
 
-  action(target_name) {
-    forward_variables_from(invoker, _vars_to_forward)
-    out_file_name = target_name + "_stub.txt"
-    out_path = "$target_gen_dir/" + out_file_name
-    rebased_out_path =
-        rebase_path(target_gen_dir, root_build_dir) + "/" + out_file_name
-    script = "$perfetto_root_path/tools/touch_file.py"
-    args = [
-      "--output",
-      rebased_out_path,
-    ]
+  if (is_perfetto_build_generator) {
+    action(target_name) {
+      forward_variables_from(invoker, _vars_to_forward)
+      out_file_name = target_name + "_stub.txt"
+      out_path = "$target_gen_dir/" + out_file_name
+      rebased_out_path =
+          rebase_path(target_gen_dir, root_build_dir) + "/" + out_file_name
+      script = "$perfetto_root_path/tools/touch_file.py"
+      args = [
+        "--output",
+        rebased_out_path,
+      ]
 
-    # Build generators ignore this 'deps' variable and read metada instead.
-    # We create this variable to tell GN that this test depends on two android
-    # app targets and to maintain build graph connectivity.
-    deps = [
-      app,
-      test_app,
-    ]
-    outputs = [ out_path ]
-    metadata = {
-      perfetto_action_type_for_generator =
-          [ "perfetto_android_instrumentation_test" ]
-      perfetto_android_a_i_t_app = [ get_label_info(app, "label_no_toolchain") ]
-      perfetto_android_a_i_t_test_app =
-          [ get_label_info(test_app, "label_no_toolchain") ]
-      if (defined(android_bp_test_manifest)) {
-        perfetto_android_a_i_t_android_bp_test_manifest =
-            [ get_path_info(android_bp_test_manifest, "abspath") ]
+      # Build generators ignore this 'deps' variable and read metada instead.
+      # We create this variable to tell GN that this test depends on two android
+      # app targets and to maintain build graph connectivity.
+      deps = [
+        app,
+        test_app,
+      ]
+      outputs = [ out_path ]
+      metadata = {
+        perfetto_action_type_for_generator =
+            [ "perfetto_android_instrumentation_test" ]
+        perfetto_android_a_i_t_app =
+            [ get_label_info(app, "label_no_toolchain") ]
+        perfetto_android_a_i_t_test_app =
+            [ get_label_info(test_app, "label_no_toolchain") ]
+        if (defined(android_bp_test_manifest)) {
+          perfetto_android_a_i_t_android_bp_test_manifest =
+              [ get_path_info(android_bp_test_manifest, "abspath") ]
+        }
+        if (defined(android_bp_test_config)) {
+          perfetto_android_a_i_t_android_bp_test_config =
+              [ get_path_info(android_bp_test_config, "abspath") ]
+        }
       }
-      if (defined(android_bp_test_config)) {
-        perfetto_android_a_i_t_android_bp_test_config =
-            [ get_path_info(android_bp_test_config, "abspath") ]
-      }
+    }
+  } else {
+    group(target_name) {
+      forward_variables_from(invoker,
+                             [
+                               "testonly",
+                               "visibility",
+                             ])
+      deps = [
+        invoker.app,
+        invoker.test_app,
+      ]
+      not_needed(invoker, _vars_to_forward)
     }
   }
 }

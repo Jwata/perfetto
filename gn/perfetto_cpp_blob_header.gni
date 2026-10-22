@@ -30,6 +30,8 @@ import("perfetto.gni")
 #   generated_header: path to the .h file the script writes (typically
 #                     under $target_gen_dir).
 # Optional invoker args:
+#   depfile: path to a depfile written by the script (passed via `--depfile`
+#            in GN/Ninja builds; ignored by Bazel/Soong).
 #   pass_gen_dir: if true, prepends `--gen-dir <gen_dir>` to the script's
 #                 args. For ninja, the value is rebase_path(root_gen_dir).
 #                 For Bazel/Soong, the GN→Bazel and GN→Android.bp
@@ -57,6 +59,18 @@ template("perfetto_cpp_blob_header") {
       "--output",
       rebase_path(invoker.generated_header, root_build_dir),
     ]
+
+    # The depfile is only needed for GN/Ninja builds. tools/gen_bazel and
+    # tools/gen_android_bp (which run with is_perfetto_build_generator=true)
+    # translate this action into Bazel/Soong rules that list the transitive
+    # input files explicitly, so they neither need nor understand --depfile.
+    if (defined(invoker.depfile) && !is_perfetto_build_generator) {
+      depfile = invoker.depfile
+      args += [
+        "--depfile",
+        rebase_path(invoker.depfile, root_build_dir),
+      ]
+    }
     if (defined(invoker.pass_gen_dir) && invoker.pass_gen_dir) {
       args += [
         "--gen-dir",

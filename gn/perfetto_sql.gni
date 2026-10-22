@@ -16,23 +16,32 @@ import("perfetto.gni")
 import("perfetto_cpp_blob_header.gni")
 
 template("perfetto_sql_source_set") {
-  action("${target_name}") {
-    forward_variables_from(invoker, [ "deps" ])
+  if (is_perfetto_build_generator) {
+    action("${target_name}") {
+      forward_variables_from(invoker, [ "deps" ])
 
-    out_path = "$target_gen_dir/" + target_name
-    rebased_out_path =
-        rebase_path(target_gen_dir, root_build_dir) + "/" + target_name
+      out_path = "$target_gen_dir/" + target_name
+      rebased_out_path =
+          rebase_path(target_gen_dir, root_build_dir) + "/" + target_name
 
-    script = "$perfetto_root_path/tools/touch_file.py"
-    args = [
-      "--output",
-      rebased_out_path,
-    ]
-    inputs = invoker.sources
-    outputs = [ out_path ]
-    metadata = {
-      perfetto_sql_source_files = inputs
-      perfetto_action_type_for_generator = [ "sql_source_set" ]
+      script = "$perfetto_root_path/tools/touch_file.py"
+      args = [
+        "--output",
+        rebased_out_path,
+      ]
+      inputs = invoker.sources
+      outputs = [ out_path ]
+      metadata = {
+        perfetto_sql_source_files = inputs
+        perfetto_action_type_for_generator = [ "sql_source_set" ]
+      }
+    }
+  } else {
+    group("${target_name}") {
+      forward_variables_from(invoker, [ "deps" ])
+      metadata = {
+        perfetto_sql_source_files = invoker.sources
+      }
     }
   }
 }
@@ -52,6 +61,7 @@ template("perfetto_amalgamated_sql_header") {
     script = "$perfetto_root_path/tools/gen_amalgamated_sql.py"
     sources = [ gen_txt_file ]
     generated_header = "${target_gen_dir}/" + invoker.generated_header
+    depfile = "${target_gen_dir}/${invoker_target}.d"
     pass_gen_dir = true
     extra_args = [
       "--namespace",
